@@ -1,0 +1,61 @@
+services:
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    env_file:
+      - .env
+    volumes:
+      - ${MONGO_DATA}:/data/db
+    networks:
+      - mynetwork
+
+  rust-audit-service:
+    build: ./backend/audit/
+    image: rust-audit-service
+    container_name: rust-audit-service
+    volumes:
+      - ./backend/uploads:/usr/src/app/uploads
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    networks:
+      - mynetwork
+
+  backend:
+    build: ./backend/
+    image: backend
+    ports:
+      - "3000:3000"
+    container_name: backend
+    volumes:
+      - ./backend/uploads:/usr/src/app/uploads
+      - ./backend/dataBase:/usr/src/app/dataBase
+    env_file:
+      - .env
+    restart: unless-stopped
+    depends_on:
+      - mongo
+      - rust-audit-service
+    networks:
+      - mynetwork
+    
+  frontend:
+    build: ./frontend/
+    image: frontend
+    ports:
+      - "5000:5000"
+    container_name: frontend
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - mynetwork
+    depends_on:
+      - backend
+  
+networks:
+  mynetwork:
+    driver: bridge
